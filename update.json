@@ -1,0 +1,18 @@
+{
+  "addons": {
+    "cortex@yicheng-fu.github.io": {
+      "updates": [
+        {
+          "version": "0.5.5",
+          "update_link": "https://github.com/yicheng-fu/codex-for-zotero/releases/download/v0.5.5/cortex-for-zotero.xpi",
+          "applications": {
+            "zotero": {
+              "strict_min_version": "7.0",
+              "strict_max_version": "10.0.*"
+            }
+          }
+        }
+      ]
+    }
+  }
+}

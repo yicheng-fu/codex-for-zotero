@@ -1,0 +1,14 @@
+#zotero-codex-preferences .zcs-preferences-description {
+  margin-bottom: 10px;
+  color: var(--fill-secondary);
+  line-height: 1.5;
+}
+
+#zotero-codex-preferences .zcs-preference-row {
+  min-height: 36px;
+  padding-block: 3px;
+}
+
+#zotero-codex-preferences menulist {
+  min-width: 150px;
+}

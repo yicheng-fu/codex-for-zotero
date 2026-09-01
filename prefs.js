@@ -1,0 +1,11 @@
+pref("extensions.zotero-codex.codexPath", "");
+pref("extensions.zotero-codex.appServerPort", 45123);
+pref("extensions.zotero-codex.maxContextChars", 180000);
+pref("extensions.zotero-codex.conversationIndex", "{}");
+pref("extensions.zotero-codex.model", "");
+pref("extensions.zotero-codex.reasoningEffort", "");
+pref("extensions.zotero-codex.serviceTier", "default");
+pref("extensions.zotero-codex.chatFontSize", 12);
+pref("extensions.zotero-codex.chatFontFamily", "system");
+pref("extensions.zotero-codex.themeColor", "emerald");
+pref("extensions.zotero-codex.uiLanguage", "zh-CN");

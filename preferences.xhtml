@@ -1,0 +1,73 @@
+<vbox id="zotero-codex-preferences"
+    class="main-section zcs-preferences">
+  <groupbox aria-labelledby="zcs-preferences-appearance-title">
+    <label>
+      <html:h2 id="zcs-preferences-appearance-title">对话外观</html:h2>
+    </label>
+    <description class="zcs-preferences-description">
+      调整 Cortex 侧边栏中问题、回答和输入框的显示样式。修改后会立即应用到已打开的对话。
+    </description>
+
+    <hbox class="zcs-preference-row" align="center">
+      <label id="zcs-language-label" value="界面语言" control="zcs-ui-language"/>
+      <spacer flex="1"/>
+      <menulist id="zcs-ui-language"
+          preference="extensions.zotero-codex.uiLanguage"
+          native="true">
+        <menupopup>
+          <menuitem label="中文" value="zh-CN"/>
+          <menuitem label="English" value="en-US"/>
+        </menupopup>
+      </menulist>
+    </hbox>
+
+    <hbox class="zcs-preference-row" align="center">
+      <label id="zcs-font-size-label" value="字体大小" control="zcs-chat-font-size"/>
+      <spacer flex="1"/>
+      <menulist id="zcs-chat-font-size"
+          preference="extensions.zotero-codex.chatFontSize"
+          native="true">
+        <menupopup>
+          <menuitem label="11 px" value="11"/>
+          <menuitem label="12 px" value="12"/>
+          <menuitem label="13 px" value="13"/>
+          <menuitem label="14 px" value="14"/>
+          <menuitem label="15 px" value="15"/>
+          <menuitem label="16 px" value="16"/>
+          <menuitem label="18 px" value="18"/>
+        </menupopup>
+      </menulist>
+    </hbox>
+
+    <hbox class="zcs-preference-row" align="center">
+      <label id="zcs-font-family-label" value="字体" control="zcs-chat-font-family"/>
+      <spacer flex="1"/>
+      <menulist id="zcs-chat-font-family"
+          preference="extensions.zotero-codex.chatFontFamily"
+          native="true">
+        <menupopup>
+          <menuitem id="zcs-font-system" label="系统默认" value="system"/>
+          <menuitem id="zcs-font-sans" label="无衬线" value="sans"/>
+          <menuitem id="zcs-font-serif" label="衬线" value="serif"/>
+          <menuitem id="zcs-font-mono" label="等宽" value="mono"/>
+        </menupopup>
+      </menulist>
+    </hbox>
+
+    <hbox class="zcs-preference-row" align="center">
+      <label id="zcs-theme-label" value="主题配色" control="zcs-theme-color"/>
+      <spacer flex="1"/>
+      <menulist id="zcs-theme-color"
+          preference="extensions.zotero-codex.themeColor"
+          native="true">
+        <menupopup>
+          <menuitem id="zcs-theme-emerald" label="翡翠绿" value="emerald"/>
+          <menuitem id="zcs-theme-blue" label="海蓝" value="blue"/>
+          <menuitem id="zcs-theme-violet" label="紫罗兰" value="violet"/>
+          <menuitem id="zcs-theme-orange" label="暖橙" value="orange"/>
+          <menuitem id="zcs-theme-rose" label="玫瑰" value="rose"/>
+        </menupopup>
+      </menulist>
+    </hbox>
+  </groupbox>
+</vbox>
