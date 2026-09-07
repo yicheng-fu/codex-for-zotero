@@ -10,6 +10,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = PROJECT_ROOT / "dist" / "cortex-for-zotero.xpi"
 EXCLUDED_PARTS = {"dist", "tests", "scripts", "__pycache__"}
 EXCLUDED_NAMES = {"update.json"}
+EXCLUDED_SUFFIXES = {".md", ".mov", ".mp4"}
 
 
 def build_xpi(output: Path) -> Path:
@@ -22,7 +23,7 @@ def build_xpi(output: Path) -> Path:
                 or any(part in EXCLUDED_PARTS for part in relative.parts)
                 or any(part.startswith(".") for part in relative.parts)
                 or path.name in EXCLUDED_NAMES
-                or path.suffix == ".md"
+                or path.suffix.lower() in EXCLUDED_SUFFIXES
             ):
                 continue
             archive.write(path, relative)

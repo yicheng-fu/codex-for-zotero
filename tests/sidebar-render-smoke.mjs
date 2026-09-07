@@ -120,6 +120,10 @@ vm.runInContext(`${source}
   globalThis.queuePDFSelectionForTest = queuePDFSelection;
   globalThis.createCollectionShellContextForTest = createCollectionShellContext;
   globalThis.enforceIconOnlyPaneChromeForTest = enforceIconOnlyPaneChrome;
+  globalThis.renderMarkdownForTest = renderMarkdown;
+  globalThis.setKatexRendererForTest = (renderer) => {
+    katexTestRenderer = renderer;
+  };
   globalThis.getPanelSessionForTest = () => [...sessions.values()][0];
   globalThis.setUILanguageForTest = (language) => {
     setPref(UI_LANGUAGE_PREF, language);
@@ -128,11 +132,88 @@ vm.runInContext(`${source}
 `, context);
 
 context.renderPanelShellForTest({ body, doc });
+context.setKatexRendererForTest({
+  render: (sourceText, element, options) => {
+    element.classList.add("katex-rendered");
+    element.dataset.mathSource = sourceText;
+    element.dataset.displayMode = String(options.displayMode);
+  },
+});
 
 assert.equal(body.children.length, 1);
 assert.equal(body.children[0].className, "zcs-root zcs-loading");
 assert.equal(body.children[0].textContent, "正在载入当前论文…");
 assert.match(documentElement.children[0].textContent, /\.zcs-loading \{ min-height: 156px/);
+
+const markdown = context.renderMarkdownForTest(doc, [
+  "## 结论",
+  "",
+  "这是 **重点**、*强调* 和 `inline()`。",
+  "行内公式 $E = mc^2$ 与 \\(a+b\\)。",
+  "",
+  "- 第一项",
+  "- [x] 已完成",
+  "",
+  "> 引用内容",
+  "",
+  "| 方法 | 结果 |",
+  "| :--- | ---: |",
+  "| Cortex | 正常 |",
+  "",
+  "```js",
+  "const safe = '<script>';",
+  "```",
+  "",
+  "$$",
+  "\\int_0^1 x^2 \\, dx",
+  "$$",
+  "",
+  "\\[\\sum_{i=1}^{n} i\\]",
+  "",
+  "[官方来源](https://example.com) [危险链接](javascript:alert(1)) <script>alert(1)</script>",
+].join("\n"));
+assert.ok(find(markdown, (element) => element.tagName === "h2"));
+assert.ok(find(markdown, (element) => element.tagName === "strong"));
+assert.ok(find(markdown, (element) => element.tagName === "em"));
+assert.ok(find(markdown, (element) => element.className === "zcs-markdown-inline-code"));
+assert.ok(find(markdown, (element) => element.tagName === "ul"));
+assert.ok(find(markdown, (element) => element.tagName === "blockquote"));
+assert.ok(find(markdown, (element) => element.tagName === "table"));
+assert.ok(find(markdown, (element) => element.className === "language-js"));
+assert.ok(find(markdown, (element) =>
+  element.className.includes("zcs-markdown-math")
+  && element.dataset.mathSource === "E = mc^2"
+  && element.dataset.displayMode === "false"
+));
+assert.ok(find(markdown, (element) =>
+  element.className.includes("zcs-markdown-math-display")
+  && element.dataset.mathSource.includes("\\int_0^1")
+  && element.dataset.displayMode === "true"
+));
+assert.ok(find(markdown, (element) =>
+  element.className.includes("zcs-markdown-math-display")
+  && element.dataset.mathSource.includes("\\sum_{i=1}^{n}")
+));
+assert.ok(find(markdown, (element) => element.tagName === "a" && element.href === "https://example.com"));
+assert.equal(find(markdown, (element) => element.tagName === "script"), null);
+assert.equal(find(markdown, (element) => String(element.href || "").startsWith("javascript:")), null);
+
+const escapedFormulaOutput = context.renderMarkdownForTest(doc, String.raw`常见端到端驾驶模型通过模仿学习：
+\\[\hat{\tau}=\pi\_\theta(I,s\_{\mathrm{ego}},c),
+\qquad
+\mathcal L=\operatorname{dist}(\hat{\tau},\tau\_{\mathrm{human}})\\]
+
+其中，\\(I\\) 是图像，\\(c\\) 是导航指令。`);
+assert.ok(find(escapedFormulaOutput, (element) =>
+  element.className.includes("zcs-markdown-math-display")
+  && element.dataset.mathSource.includes("\\hat{\\tau}=\\pi_\\theta")
+  && element.dataset.mathSource.includes("s_{\\mathrm{ego}}")
+));
+assert.ok(find(escapedFormulaOutput, (element) =>
+  element.className.includes("zcs-markdown-math")
+  && element.dataset.mathSource === "I"
+  && element.dataset.displayMode === "false"
+));
 
 let attachmentReads = 0;
 let abstractReads = 0;
@@ -213,13 +294,20 @@ assert.ok(find(body, (element) => element.className === "zcs-quota-item" && elem
 assert.equal(find(body, (element) => element.className === "zcs-quota-label"), null);
 assert.equal(find(body, (element) => element.className === "zcs-privacy"), null);
 assert.ok(find(body, (element) => element.textContent === "调研相关论文"));
-assert.ok(find(body, (element) => element.textContent === "积小成巨"));
+assert.equal(find(body, (element) => element.className === "zcs-empty-title"), null);
 const login = find(body, (element) => element.className === "zcs-link-button");
 assert.equal(login.hidden, true);
 const renderedRoot = find(body, (element) => element.className === "zcs-root");
 assert.equal(renderedRoot.style["--zcs-chat-font-size"], "12px");
 assert.match(documentElement.children[0].textContent, /\.zcs-message \{[^}]*border: 0;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-message-assistant, \.zcs-message-reasoning \{[^}]*align-self: flex-start;[^}]*box-sizing: border-box;[^}]*width: 91%;[^}]*max-width: 91%;/);
+assert.match(documentElement.children[0].textContent, /\.zcs-markdown-code-block \{[^}]*overflow-x: auto;/);
+assert.match(documentElement.children[0].textContent, /\.zcs-markdown-table-wrap \{[^}]*overflow-x: auto;/);
+assert.match(documentElement.children[0].textContent, /\.zcs-markdown-math-display \{[^}]*overflow-x: auto;/);
+assert.ok(documentElement.children.find((element) =>
+  element.id === "zotero-codex-katex-styles"
+  && element.href.endsWith("vendor/katex/katex.min.css")
+));
 assert.match(documentElement.children[0].textContent, /\.zcs-chip \{[^}]*border: 0;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-composer:focus-within \{[^}]*var\(--zcs-accent\)/);
 assert.match(documentElement.children[0].textContent, /\.zcs-input:focus, \.zcs-input:focus-visible \{[^}]*outline: 0 !important;[^}]*box-shadow: none !important;/);
@@ -233,11 +321,20 @@ assert.match(documentElement.children[0].textContent, /\.zcs-select:hover, \.zcs
 assert.match(documentElement.children[0].textContent, /\.zcs-suggestions \{[^}]*margin-bottom: 0;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-selection-slot:empty \{ display: none; \}/);
 assert.match(documentElement.children[0].textContent, /\.zcs-model-select \{[^}]*width: 108px;[^}]*max-width: min\(38%, 108px\);/);
-assert.match(documentElement.children[0].textContent, /\.zcs-empty-title \{[^}]*color: var\(--zcs-accent-strong\);/);
-assert.match(documentElement.children[0].textContent, /\.zcs-empty-title \{[^}]*font-size: 17px;/);
+assert.equal(source.includes("积小成巨"), false);
+assert.equal(source.includes("Many a little makes a mickle"), false);
 assert.equal(source.includes('session.busy ? "■" : "↑"'), false);
 
 const panelSession = context.getPanelSessionForTest();
+panelSession.messages = [{ role: "assistant", text: "## Markdown\n\n支持 **粗体** 和 `代码`。" }];
+for (const listener of panelSession.listeners) listener();
+const markdownBubble = find(body, (element) =>
+  element.className.includes("zcs-message-assistant")
+);
+assert.ok(find(markdownBubble, (element) => element.tagName === "h2"));
+assert.ok(find(markdownBubble, (element) => element.tagName === "strong"));
+assert.ok(find(markdownBubble, (element) => element.className === "zcs-markdown-inline-code"));
+
 panelSession.busy = true;
 panelSession.activeThinking = { role: "reasoning", text: "正在核对方法与实验结果" };
 panelSession.activeAssistant = { role: "assistant", text: "" };
@@ -375,10 +472,7 @@ assert.ok(find(body, (element) => element.tagName === "button" && element.textCo
 assert.ok(find(body, (element) => element.tagName === "option" && element.textContent === "Standard"));
 assert.ok(find(body, (element) => element.tagName === "option" && element.textContent === "Fast"));
 assert.ok(find(body, (element) => element.className === "zcs-quota-item" && element.textContent === "Week 50%"));
-assert.equal(
-  find(body, (element) => element.className === "zcs-empty-title")?.textContent,
-  "Many a little makes a mickle",
-);
+assert.equal(find(body, (element) => element.className === "zcs-empty-title"), null);
 
 context.setUILanguageForTest("zh-CN");
 let collectionChildrenRead = 0;

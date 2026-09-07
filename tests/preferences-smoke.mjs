@@ -17,7 +17,7 @@ assert.match(defaults, /uiLanguage", "zh-CN"/);
 assert.match(defaults, /serviceTier", "default"/);
 assert.match(bootstrap, /scripts: \[`\$\{pluginRootURI\}preferences\.js`\]/);
 assert.equal(manifest.name, "Cortex");
-assert.equal(manifest.version, "0.5.5");
+assert.equal(manifest.version, "0.5.10");
 assert.equal(manifest.author, "Yicheng Fu");
 assert.equal(manifest.applications.zotero.id, "cortex@yicheng-fu.github.io");
 assert.equal(

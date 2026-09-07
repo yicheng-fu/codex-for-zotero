@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Cortex",
-  "version": "0.5.5",
+  "version": "0.5.10",
   "description": "Open Cortex in Zotero's right sidebar and ask Codex about the current paper or collection.",
   "author": "Yicheng Fu",
   "applications": {

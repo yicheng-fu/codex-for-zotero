@@ -3,8 +3,8 @@
     "cortex@yicheng-fu.github.io": {
       "updates": [
         {
-          "version": "0.5.5",
-          "update_link": "https://github.com/yicheng-fu/codex-for-zotero/releases/download/v0.5.5/cortex-for-zotero.xpi",
+          "version": "0.5.10",
+          "update_link": "https://raw.githubusercontent.com/yicheng-fu/codex-for-zotero/main/dist/cortex-for-zotero.xpi",
           "applications": {
             "zotero": {
               "strict_min_version": "7.0",

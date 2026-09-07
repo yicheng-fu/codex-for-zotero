@@ -95,6 +95,7 @@ const lazyPaperPrompt = await context.testAPI.prepareQuestionInput(
 assert.equal(lazyPaperReads.attachment, 1);
 assert.equal(lazyPaperReads.abstract, 1);
 assert.match(lazyPaperPrompt, /An abstract that must not be read/);
+assert.match(lazyPaperPrompt, /不是回答范围限制/);
 assert.match(lazyPaperPrompt, /用户问题：这篇论文的研究动机是什么？/);
 
 let collectionChildrenRead = 0;
@@ -150,6 +151,7 @@ const collectionPrompt = context.testAPI.buildCollectionTurn(
 );
 assert.match(collectionPrompt, /Agent Research/);
 assert.match(collectionPrompt, /Collection Paper 1/);
+assert.match(collectionPrompt, /不限制你使用自身知识、推理或网络资料/);
 assert.match(collectionPrompt, /用户问题：请比较这些论文的研究方法/);
 assert.match(
   context.testAPI.serverThreadName(lazyCollectionContext, "方法比较"),
@@ -274,12 +276,14 @@ assert.equal(turnStart.params.effort, "medium");
 assert.equal(turnStart.params.summary, "detailed");
 assert.equal(turnStart.params.serviceTierForTurn, "priority");
 assert.match(turnStart.params.input[0].text, /\[PDF 选中内容 1\]/);
-assert.equal(turnStart.params.sandboxPolicy.networkAccess, false);
+assert.equal(turnStart.params.sandboxPolicy.networkAccess, true);
 const normalThreadStart = requests.find((request) => request.method === "thread/start");
-assert.equal(normalThreadStart.params.config.web_search, "disabled");
+assert.equal(normalThreadStart.params.config.web_search, "live");
 assert.equal(normalThreadStart.params.serviceTier, "priority");
 assert.match(normalThreadStart.params.developerInstructions, /中文问题只用中文，英文问题只用英文/);
 assert.match(normalThreadStart.params.developerInstructions, /论文原文语言、界面语言和引用文本都不能改变回答语言/);
+assert.match(normalThreadStart.params.developerInstructions, /不是回答范围限制/);
+assert.match(normalThreadStart.params.developerInstructions, /网页搜索默认可用/);
 assert.equal(sendSession.pendingSelections.length, 0);
 
 sendSession.busy = false;
@@ -288,9 +292,7 @@ await context.testAPI.sendQuestion(sendSession, "调研相关论文", { allowNet
 const researchTurn = requests.filter((request) => request.method === "turn/start").at(-1);
 assert.equal(researchTurn.params.sandboxPolicy.type, "readOnly");
 assert.equal(researchTurn.params.sandboxPolicy.networkAccess, true);
-const researchResume = requests.filter((request) => request.method === "thread/resume").at(-1);
-assert.equal(researchResume.params.config.web_search, "live");
-assert.match(researchResume.params.developerInstructions, /可以使用网络搜索/);
+assert.equal(requests.filter((request) => request.method === "thread/resume").length, 0);
 
 collectionChildrenRead = 0;
 collectionMetadataRead = 0;
@@ -304,8 +306,10 @@ assert.equal(collectionChildrenRead, 1);
 assert.ok(collectionMetadataRead > 0);
 assert.match(collectionTurn.params.input[0].text, /--- 分类文献索引开始 ---/);
 assert.match(collectionTurn.params.input[0].text, /Collection Paper 1/);
-assert.equal(collectionTurn.params.sandboxPolicy.networkAccess, false);
-assert.match(collectionThreadStart.params.developerInstructions, /分类文献分析助手/);
+assert.equal(collectionTurn.params.sandboxPolicy.networkAccess, true);
+assert.equal(collectionThreadStart.params.config.web_search, "live");
+assert.match(collectionThreadStart.params.developerInstructions, /嵌入 Zotero 的 Codex/);
+assert.match(collectionThreadStart.params.developerInstructions, /不是回答范围限制/);
 assert.match(collectionThreadStart.params.developerInstructions, /只在问题确实需要正文证据时读取/);
 
 context.testAPI.upsertConversation(session, {
