@@ -30,7 +30,7 @@ const UI_TEXT = {
     selectionAdded: "已加入 {count} 段 PDF 选中内容",
     selectionLocateError: "无法定位当前 PDF 条目",
     selectionEmptyError: "PDF 选中内容为空",
-    selectionActionTitle: "将选中的 PDF 原文加入 Codex 对话",
+    selectionActionTitle: "将选中的 PDF 原文加入 Cortex 对话",
     adding: "添加中…",
     addedToCodex: "已加入 Cortex",
     addFailed: "添加失败",
@@ -141,7 +141,7 @@ const UI_TEXT = {
     send: "发送",
     stop: "停止",
     login: "登录 Codex",
-    emptyCopy: "询问研究动机、核心方法、实验结论或局限；也可以在 PDF 中选中文字后点击“＋ Codex”。",
+    emptyCopy: "询问研究动机、核心方法、实验结论或局限；也可以在 PDF 中选中文字后点击“+ Ask Cortex”。",
     collectionEmptyCopy: "可以总结分类文献、梳理研究脉络、归纳主题、比较研究方法，并提炼争议与研究空白。",
     multipleCollections: "{count} 个分类",
     thinking: "正在思考…",
@@ -165,7 +165,7 @@ const UI_TEXT = {
     selectionAdded: "Added {count} PDF selection(s)",
     selectionLocateError: "Could not locate the current PDF item",
     selectionEmptyError: "The PDF selection is empty",
-    selectionActionTitle: "Add the selected PDF text to Codex",
+    selectionActionTitle: "Add the selected PDF text to Cortex",
     adding: "Adding…",
     addedToCodex: "Added to Cortex",
     addFailed: "Add failed",
@@ -276,7 +276,7 @@ const UI_TEXT = {
     send: "Send",
     stop: "Stop",
     login: "Sign in to Codex",
-    emptyCopy: "Ask about motivation, methods, results, or limitations. You can also select PDF text and choose “＋ Codex”.",
+    emptyCopy: "Ask about motivation, methods, results, or limitations. You can also select PDF text and choose “+ Ask Cortex”.",
     collectionEmptyCopy: "Summarize the collection, trace its research development, group themes, compare methods, and identify debates or research gaps.",
     multipleCollections: "{count} collections",
     thinking: "Thinking…",
@@ -338,7 +338,7 @@ async function startup({ rootURI }) {
     paneID: "zotero-codex-chat",
     pluginID: PLUGIN_ID,
     header: {
-      l10nID: "zotero-codex-sidebar-icon-only",
+      l10nID: "zotero-codex-sidebar-header",
       icon: `${pluginRootURI}icons/codex.svg`,
     },
     sidenav: {
@@ -346,7 +346,7 @@ async function startup({ rootURI }) {
       icon: `${pluginRootURI}icons/codex.svg`,
     },
     bodyXHTML: PANEL_BODY_XHTML,
-    onInit: ({ doc }) => enforceIconOnlyPaneChrome(doc),
+    onInit: ({ doc }) => configurePaneChrome(doc),
     onRender: renderPanelShell,
     onAsyncRender: renderPanel,
     onDestroy: ({ body }) => cleanupPanel(body),
@@ -377,7 +377,7 @@ async function startup({ rootURI }) {
   }
   if (win && win.document) {
     for (const delay of [0, 120, 500]) {
-      setTimeout(() => enforceIconOnlyPaneChrome(win.document), delay);
+      setTimeout(() => configurePaneChrome(win.document), delay);
     }
     installCollectionPanelIntegration(win);
   }
@@ -1054,7 +1054,7 @@ function renderReaderSelectionAction({ reader, doc, params, append }) {
 
   const button = doc.createElement("button");
   button.type = "button";
-  button.textContent = "＋ Codex";
+  button.textContent = "+ Ask Cortex";
   button.title = uiText("selectionActionTitle");
   button.setAttribute("aria-label", button.title);
   button.style.cssText =
@@ -3248,12 +3248,13 @@ function updateRateLimitDisplay(doc, element, rateLimitState) {
       doc,
       "span",
       "zcs-quota-item",
-      `${window.label} ${window.remainingPercent}%`,
+      `${window.remainingPercent}%`,
     );
     const reset = formatRateLimitReset(window.resetsAt);
     item.title = reset
       ? uiText("quotaReset", { reset })
       : uiText("quotaRemaining");
+    item.setAttribute("aria-label", `${uiText("quotaRemaining")} ${window.remainingPercent}%`);
     element.append(item);
   }
 }
@@ -3390,7 +3391,7 @@ function isCodexPaneID(paneID) {
   return value === registeredSectionID || value.endsWith("zotero-codex-chat");
 }
 
-function enforceIconOnlyPaneChrome(doc) {
+function configurePaneChrome(doc) {
   if (!doc || typeof doc.querySelectorAll !== "function") return;
 
   for (const sidenav of doc.querySelectorAll("item-pane-sidenav")) {
@@ -3402,6 +3403,8 @@ function enforceIconOnlyPaneChrome(doc) {
       for (const attribute of ["data-l10n-id", "data-l10n-args", "label", "title", "tooltiptext", "aria-label"]) {
         button.removeAttribute(attribute);
       }
+      button.setAttribute("aria-label", "Cortex");
+      button.setAttribute("title", "Cortex");
     }
   }
 
@@ -3409,12 +3412,12 @@ function enforceIconOnlyPaneChrome(doc) {
     if (!isCodexPaneID(pane.dataset && pane.dataset.pane)) continue;
     const section = pane.querySelector("collapsible-section");
     if (!section) continue;
-    section.label = "";
+    section.label = "Cortex";
     delete section.dataset.l10nId;
     delete section.dataset.l10nArgs;
     section.removeAttribute("data-l10n-id");
     section.removeAttribute("data-l10n-args");
-    section.removeAttribute("label");
+    section.setAttribute("label", "Cortex");
   }
 }
 
@@ -3500,73 +3503,83 @@ function injectStyles(doc) {
   const style = doc.createElementNS(XHTML_NS, "style");
   style.id = "zotero-codex-sidebar-styles";
   style.textContent = `
-    .zcs-root { --zcs-accent: #0f8a72; --zcs-accent-strong: #08725e; --zcs-border: color-mix(in srgb, currentColor 13%, transparent); --zcs-soft: color-mix(in srgb, currentColor 5%, transparent); --zcs-radius-card: 14px; --zcs-radius-panel: 12px; --zcs-radius-item: 10px; --zcs-radius-control: 8px; --zcs-radius-bubble: 15px; --zcs-radius-pill: 999px; --zcs-chat-font-size: 12px; --zcs-chat-font-family: system-ui, -apple-system, "PingFang SC", sans-serif; display: flex; flex-direction: column; gap: 11px; padding: 10px 4px 14px; color: var(--fill-primary, inherit); font: menu; font-family: var(--zcs-chat-font-family); }
+    item-pane-custom-section[data-pane$="zotero-codex-chat"] collapsible-section[custom] > .head .title { gap: 8px; }
+    item-pane-custom-section[data-pane$="zotero-codex-chat"] collapsible-section[custom] > .head .title::before { width: 22px; height: 22px; flex: 0 0 22px; background-size: 22px 22px; }
+    .zcs-root { --zcs-accent: #0f8a72; --zcs-accent-strong: #08725e; --zcs-border: color-mix(in srgb, currentColor 10%, transparent); --zcs-soft: color-mix(in srgb, currentColor 4%, transparent); --zcs-secondary: var(--fill-secondary, #626269); --zcs-surface: var(--material-background, #fff); --zcs-link: var(--zcs-accent-strong); --zcs-radius-card: 14px; --zcs-radius-panel: 12px; --zcs-radius-item: 10px; --zcs-radius-control: 8px; --zcs-radius-bubble: 15px; --zcs-radius-pill: 999px; --zcs-chat-font-size: 12px; --zcs-chat-font-family: system-ui, -apple-system, "PingFang SC", sans-serif; display: flex; flex-direction: column; gap: 12px; min-width: 0; box-sizing: border-box; padding: 12px 8px 14px; color-scheme: light dark; color: var(--fill-primary, #242426); font: menu; font-family: system-ui, -apple-system, "PingFang SC", sans-serif; }
     .zcs-root [hidden] { display: none !important; }
-    .zcs-loading { min-height: 156px; align-items: center; justify-content: center; color: var(--fill-secondary, #666); font-size: 12px; }
-    .zcs-header { display: flex; align-items: center; gap: 9px; }
+    .zcs-loading { min-height: 156px; align-items: center; justify-content: center; color: var(--zcs-secondary); font-size: 12px; }
+    .zcs-header { display: flex; align-items: center; gap: 8px; padding: 0 2px 2px; }
     .zcs-heading { min-width: 0; flex: 1; }
-    .zcs-title { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-weight: 680; font-size: 13px; line-height: 1.32; }
-    .zcs-header-actions { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
-    .zcs-icon-button, .zcs-button, .zcs-chip, .zcs-tab, .zcs-history-action, .zcs-history-menu-item { appearance: none; border: 1px solid var(--zcs-border); color: inherit; background: var(--zcs-soft); font: inherit; cursor: pointer; transition: background .14s ease, border-color .14s ease, transform .14s ease; }
+    .zcs-title { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-weight: 600; font-size: 13px; line-height: 1.45; }
+    .zcs-header-actions { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+    .zcs-icon-button, .zcs-button, .zcs-chip, .zcs-tab, .zcs-history-action, .zcs-history-menu-item { appearance: none; box-sizing: border-box; min-width: 0; margin: 0; border: 1px solid var(--zcs-border); color: inherit; background: var(--zcs-soft); font: inherit; cursor: pointer; transition: background .14s ease, border-color .14s ease, transform .14s ease; }
     .zcs-icon-button:hover, .zcs-button:hover, .zcs-chip:hover, .zcs-tab:hover, .zcs-history-action:hover, .zcs-history-menu-item:hover { background: color-mix(in srgb, currentColor 10%, transparent); border-color: color-mix(in srgb, currentColor 23%, transparent); }
     .zcs-icon-button:active, .zcs-button:active, .zcs-chip:active, .zcs-history-action:active, .zcs-history-menu-item:active { transform: translateY(1px); }
-    .zcs-icon-button { min-height: 28px; border-radius: var(--zcs-radius-control); padding: 5px 8px; font-size: 10px; white-space: nowrap; }
-    .zcs-icon-button-square { display: grid; place-items: center; width: 24px; min-width: 24px; height: 24px; min-height: 24px; border-radius: var(--zcs-radius-control); padding: 0; line-height: 1; }
+    .zcs-icon-button { min-height: 28px; border-radius: var(--zcs-radius-control); padding: 5px 8px; font-size: 11px; white-space: nowrap; background: transparent; border-color: transparent; }
+    .zcs-icon-button-square { flex: 0 0 28px; display: grid; place-items: center; width: 28px; min-width: 28px; height: 28px; min-height: 28px; border-radius: var(--zcs-radius-control); padding: 0; line-height: 1; }
     .zcs-folder-button::before { content: ""; display: block; width: 12px; height: 12px; background: currentColor; mask: url("${pluginRootURI}icons/folder.svg") center / contain no-repeat; -webkit-mask: url("${pluginRootURI}icons/folder.svg") center / contain no-repeat; }
-    .zcs-folder-button[data-active="true"] { border-color: color-mix(in srgb, var(--zcs-accent) 35%, transparent); color: var(--zcs-accent-strong); background: color-mix(in srgb, var(--zcs-accent) 9%, transparent); }
+    .zcs-folder-button[data-active="true"] { border-color: color-mix(in srgb, var(--zcs-accent) 35%, transparent); color: var(--zcs-link); background: color-mix(in srgb, var(--zcs-accent) 9%, transparent); }
     .zcs-plus-button { font-size: 15px; font-weight: 540; line-height: 1; }
     .zcs-plus-glyph { display: block; transform: translateY(-1px); }
-    .zcs-icon-button-primary { border-color: color-mix(in srgb, var(--zcs-accent) 35%, transparent); color: var(--zcs-accent-strong); background: color-mix(in srgb, var(--zcs-accent) 9%, transparent); font-weight: 650; }
-    .zcs-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 20px; font-size: 10px; color: var(--fill-secondary, #666); }
+    .zcs-icon-button-primary { border-color: color-mix(in srgb, var(--zcs-accent) 35%, transparent); color: var(--zcs-link); background: color-mix(in srgb, var(--zcs-accent) 9%, transparent); font-weight: 600; }
+    .zcs-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-height: 20px; font-size: 10px; color: var(--zcs-secondary); }
     .zcs-status { display: inline-flex; align-items: center; gap: 5px; }
-    .zcs-badge { overflow: hidden; max-width: 100%; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-pill); padding: 2px 7px; text-overflow: ellipsis; white-space: nowrap; }
-    .zcs-status-dot { width: 7px; height: 7px; border-radius: 50%; background: #2da44e; flex: 0 0 auto; box-shadow: 0 0 0 3px color-mix(in srgb, #2da44e 13%, transparent); }
-    .zcs-status-dot[data-state="busy"] { background: #bf8700; box-shadow: 0 0 0 3px color-mix(in srgb, #bf8700 13%, transparent); }
-    .zcs-status-dot[data-state="error"] { background: #cf222e; box-shadow: 0 0 0 3px color-mix(in srgb, #cf222e 13%, transparent); }
-    .zcs-model-controls { grid-area: controls; box-sizing: border-box; align-self: stretch; display: flex; align-items: stretch; gap: 6px; height: 27px; min-width: 0; overflow: visible; }
-    .zcs-select { box-sizing: border-box; display: block; align-self: stretch; width: auto; height: 27px; min-height: 27px; min-width: 0; max-width: 100%; margin: 0; border: 0; outline: none; border-radius: var(--zcs-radius-control); appearance: none; -moz-appearance: none; background-color: var(--zcs-soft); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M1 1l3 3 3-3' fill='none' stroke='%23777' stroke-width='1.25' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-position: right 5px center; background-repeat: no-repeat; background-size: 8px 5px; color: var(--fill-secondary, #666); padding: 0 16px 0 6px; font: inherit; font-size: 9px; line-height: 25px; text-overflow: ellipsis; transition: background-color .14s ease, color .14s ease; }
-    .zcs-select:hover, .zcs-select:focus { background-color: color-mix(in srgb, var(--zcs-accent) 11%, transparent); color: var(--zcs-accent-strong); }
-    .zcs-model-select { flex: 0 1 108px; width: 108px; max-width: min(38%, 108px); }
-    .zcs-effort-select { flex: 0 0 auto; max-width: 54px; }
-    .zcs-speed-select { flex: 0 0 auto; max-width: 62px; }
+    .zcs-badge { overflow: hidden; max-width: 100%; border: 0; border-radius: 0; padding: 2px 0; text-overflow: ellipsis; white-space: nowrap; }
+    .zcs-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #2da44e; flex: 0 0 auto; box-shadow: none; }
+    .zcs-status-dot[data-state="busy"] { background: #bf8700; box-shadow: none; }
+    .zcs-status-dot[data-state="error"] { background: #cf222e; box-shadow: none; }
+    .zcs-model-controls { grid-area: controls; box-sizing: border-box; align-self: stretch; display: flex; align-items: stretch; column-gap: 16px; row-gap: 8px; height: auto; min-width: 0; overflow: visible; flex-wrap: wrap; }
+    .zcs-select { box-sizing: border-box; display: block; align-self: stretch; width: auto; height: 27px; min-height: 27px; min-width: 0; max-width: 100%; margin: 0; border: 0; outline: none; border-radius: var(--zcs-radius-control); appearance: none; -moz-appearance: none; background-color: transparent; background-image: none; color: var(--zcs-secondary); padding: 0 6px; cursor: pointer; font: inherit; font-size: 10px; line-height: 25px; text-overflow: ellipsis; transition: background-color .14s ease, color .14s ease; }
+    .zcs-model-controls > * { position: relative; }
+    .zcs-model-controls > :not([hidden]) ~ :not([hidden])::after { content: ""; position: absolute; inset-inline-start: -8px; top: 50%; transform: translateY(-50%); width: 1px; height: 10px; background: var(--zcs-border); pointer-events: none; }
+    .zcs-control-field { display: inline-grid; flex: 0 1 auto; min-width: 0; height: 27px; }
+    .zcs-model-field { max-width: min(48%, 180px); }
+    .zcs-control-label { grid-area: 1 / 1; visibility: hidden; white-space: nowrap; padding: 0 4px; font: inherit; font-size: 10px; }
+    .zcs-control-field .zcs-select { position: absolute; inset: 0; width: 100%; max-width: 100%; padding: 0 4px; }
+    .zcs-speed-button { display: grid; place-items: center; flex: 0 0 24px; width: 24px; height: 27px; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: var(--zcs-radius-control); background: transparent; color: color-mix(in srgb, var(--zcs-secondary) 55%, transparent); cursor: pointer; }
+    .zcs-speed-button::before { content: ""; width: 14px; height: 14px; background: currentColor; mask: url("${pluginRootURI}icons/lightning.svg") center / contain no-repeat; }
+    .zcs-speed-button:hover { color: var(--zcs-secondary); }
+    .zcs-speed-button[data-active="true"] { color: var(--zcs-link); }
+    .zcs-speed-button:disabled { opacity: .45; cursor: default; }
+    .zcs-select:hover, .zcs-select:focus { background-color: color-mix(in srgb, var(--zcs-accent) 11%, transparent); color: var(--zcs-link); }
     .zcs-select:disabled { opacity: .55; }
     .zcs-error { color: #b4232d; background: color-mix(in srgb, #cf222e 8%, transparent); border: 1px solid color-mix(in srgb, #cf222e 18%, transparent); border-radius: var(--zcs-radius-item); padding: 8px 9px; font-size: 11px; line-height: 1.4; white-space: pre-wrap; }
-    .zcs-history { display: flex; flex-direction: column; gap: 8px; padding: 9px; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-card); background: color-mix(in srgb, var(--material-background, #fff) 96%, var(--zcs-accent) 4%); box-shadow: 0 7px 24px color-mix(in srgb, #000 7%, transparent); transform-origin: top right; }
+    .zcs-history { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-card); background: var(--zcs-surface); box-shadow: none; transform-origin: top right; }
     .zcs-history[data-animate="true"] { animation: zcs-history-reveal .44s cubic-bezier(.22, 1, .36, 1) both; will-change: opacity, transform; }
     .zcs-history[data-animate="true"] > * { animation: zcs-history-content-in .32s .06s cubic-bezier(.22, 1, .36, 1) both; }
     @keyframes zcs-history-reveal { from { opacity: 0; transform: translateY(-4px) scale(.988); } to { opacity: 1; transform: translateY(0) scale(1); } }
     @keyframes zcs-history-content-in { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: translateY(0); } }
-    .zcs-history-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .zcs-history-title { font-size: 11px; font-weight: 680; }
-    .zcs-tabs { display: flex; gap: 10px; }
-    .zcs-tab { border-radius: var(--zcs-radius-pill); padding: 3px 7px; font-size: 9px; }
-    .zcs-tab[data-active="true"] { border-color: color-mix(in srgb, var(--zcs-accent) 32%, transparent); color: var(--zcs-accent-strong); background: color-mix(in srgb, var(--zcs-accent) 10%, transparent); font-weight: 650; }
+    .zcs-history-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+    .zcs-history-title { font-size: 11px; font-weight: 600; }
+    .zcs-tabs { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px; background: var(--zcs-soft); border-radius: var(--zcs-radius-control); }
+    .zcs-tab { border-radius: 6px; padding: 4px 8px; font-size: 10px; border: 0; background: transparent; }
+    .zcs-tab[data-active="true"] { border-color: color-mix(in srgb, var(--zcs-accent) 32%, transparent); color: inherit; background: var(--zcs-surface); font-weight: 600; box-shadow: 0 1px 3px #00000012; }
     .zcs-history-list { display: flex; flex-direction: column; gap: 5px; max-height: 230px; overflow-y: auto; }
-    .zcs-history-empty { padding: 13px 6px; color: var(--fill-secondary, #777); text-align: center; font-size: 10px; }
-    .zcs-history-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 7px 8px; border: 1px solid transparent; border-radius: var(--zcs-radius-item); background: color-mix(in srgb, currentColor 3%, transparent); }
-    .zcs-history-item[data-active="true"] { border-color: color-mix(in srgb, var(--zcs-accent) 27%, transparent); background: color-mix(in srgb, var(--zcs-accent) 8%, transparent); }
+    .zcs-history-empty { padding: 13px 6px; color: var(--zcs-secondary); text-align: center; font-size: 10px; }
+    .zcs-history-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 8px; border: 1px solid transparent; border-radius: var(--zcs-radius-item); background: transparent; }
+    .zcs-history-item[data-active="true"] { border-color: transparent; background: var(--zcs-soft); }
     .zcs-history-main { min-width: 0; cursor: pointer; }
-    .zcs-history-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 620; }
-    .zcs-history-time { margin-top: 2px; color: var(--fill-secondary, #777); font-size: 9px; }
+    .zcs-history-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 500; }
+    .zcs-history-time { margin-top: 4px; color: var(--zcs-secondary); font-size: 10px; }
     .zcs-history-actions { display: flex; gap: 8px; }
-    .zcs-history-action { border-radius: var(--zcs-radius-control); padding: 3px 5px; font-size: 9px; }
-    .zcs-history-more { display: grid; place-items: center; width: 28px; min-width: 28px; height: 22px; padding: 0 0 4px; font-size: 13px; font-weight: 650; line-height: 1; }
-    .zcs-history-more[data-active="true"] { border-color: color-mix(in srgb, var(--zcs-accent) 32%, transparent); color: var(--zcs-accent-strong); background: color-mix(in srgb, var(--zcs-accent) 9%, transparent); }
-    .zcs-history-menu { grid-column: 1 / -1; justify-self: end; display: flex; flex-direction: column; gap: 6px; min-width: 108px; padding: 6px; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-panel); background: var(--material-background, #fff); box-shadow: 0 6px 16px color-mix(in srgb, #000 9%, transparent); }
+    .zcs-history-action { border-radius: var(--zcs-radius-control); padding: 3px 5px; font-size: 10px; background: transparent; border-color: transparent; }
+    .zcs-history-more { display: grid; place-items: center; width: 28px; min-width: 28px; height: 22px; padding: 0 0 4px; font-size: 13px; font-weight: 600; line-height: 1; }
+    .zcs-history-more[data-active="true"] { border-color: color-mix(in srgb, var(--zcs-accent) 32%, transparent); color: var(--zcs-link); background: color-mix(in srgb, var(--zcs-accent) 9%, transparent); }
+    .zcs-history-menu { grid-column: 1 / -1; justify-self: end; display: flex; flex-direction: column; gap: 6px; min-width: 108px; padding: 6px; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-panel); background: var(--zcs-surface); box-shadow: 0 6px 16px color-mix(in srgb, #000 9%, transparent); }
     .zcs-history-menu-item { display: flex; align-items: center; min-height: 28px; border: 0; border-radius: calc(var(--zcs-radius-panel) - 5px); padding: 5px 8px; text-align: start; font-size: 10px; }
     .zcs-rename { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 10px; row-gap: 6px; }
     .zcs-rename-input { min-width: 0; border: 1px solid color-mix(in srgb, var(--zcs-accent) 38%, transparent); border-radius: var(--zcs-radius-control); background: var(--material-background, transparent); color: inherit; padding: 5px 6px; font: inherit; font-size: 10px; }
-    .zcs-messages { display: flex; flex-direction: column; gap: 9px; min-height: 170px; max-height: 52vh; overflow-y: auto; padding: 4px 2px 6px; scrollbar-width: thin; }
-    .zcs-empty { display: flex; flex-direction: column; justify-content: center; min-height: 145px; padding: 10px 8px; color: var(--fill-secondary, #666); text-align: center; }
+    .zcs-messages { display: flex; flex-direction: column; gap: 16px; min-height: 170px; max-height: 52vh; overflow-y: auto; padding: 8px 2px; scrollbar-width: thin; }
+    .zcs-empty { display: flex; flex-direction: column; justify-content: center; min-height: 145px; padding: 10px 8px; color: var(--zcs-secondary); text-align: center; }
     .zcs-empty[data-animate="true"] { animation: zcs-new-chat-in .32s cubic-bezier(.22, .8, .28, 1) both; }
     @keyframes zcs-new-chat-in { from { opacity: .12; transform: translateY(7px) scale(.992); } to { opacity: 1; transform: translateY(0) scale(1); } }
     @media (prefers-reduced-motion: reduce) { .zcs-empty[data-animate="true"] { animation: none; } }
     @media (prefers-reduced-motion: reduce) { .zcs-history[data-animate="true"], .zcs-history[data-animate="true"] > * { animation: none; } }
-    .zcs-empty-copy { font-size: 11px; line-height: 1.55; }
-    .zcs-message { max-width: 91%; padding: 9px 11px; border: 0; border-radius: var(--zcs-radius-bubble); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; font-family: var(--zcs-chat-font-family); font-size: var(--zcs-chat-font-size); line-height: 1.52; }
-    .zcs-message-user { align-self: flex-end; border: 0; border-bottom-right-radius: 5px; background: linear-gradient(145deg, var(--zcs-accent), var(--zcs-accent-strong)); color: white; box-shadow: 0 3px 10px color-mix(in srgb, var(--zcs-accent) 16%, transparent); }
-    .zcs-message-assistant, .zcs-message-reasoning { align-self: flex-start; box-sizing: border-box; width: 91%; max-width: 91%; }
-    .zcs-message-assistant { border: 0; border-bottom-left-radius: 5px; background: color-mix(in srgb, currentColor 5%, transparent); white-space: normal; }
+    .zcs-empty-copy { font-size: 12px; line-height: 1.7; }
+    .zcs-message { max-width: 91%; padding: 10px 12px; border: 0; border-radius: var(--zcs-radius-bubble); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; font-family: var(--zcs-chat-font-family); font-size: var(--zcs-chat-font-size); line-height: 1.65; }
+    .zcs-message-user { align-self: flex-end; border: 0; border-bottom-right-radius: var(--zcs-radius-bubble); background: color-mix(in srgb, var(--zcs-accent) 8%, transparent); color: inherit; box-shadow: none; }
+    .zcs-message-assistant, .zcs-message-reasoning { align-self: flex-start; box-sizing: border-box; width: 100%; max-width: 100%; background: var(--zcs-soft); }
+    .zcs-message-assistant { border: 0; border-bottom-left-radius: 5px; background: transparent; white-space: normal; padding: 2px 4px; border-radius: 0; }
     .zcs-markdown { min-width: 0; white-space: normal; }
     .zcs-markdown > :first-child { margin-top: 0; }
     .zcs-markdown > :last-child { margin-bottom: 0; }
@@ -3581,7 +3594,7 @@ function injectStyles(doc) {
     .zcs-markdown li > ul, .zcs-markdown li > ol { margin: .24em 0; }
     .zcs-markdown-task { list-style: none; margin-inline-start: -1.35em !important; }
     .zcs-markdown-checkbox { width: 12px; height: 12px; margin: 0 6px 0 0; accent-color: var(--zcs-accent); vertical-align: -1px; }
-    .zcs-markdown blockquote { margin: .62em 0; border-inline-start: 3px solid color-mix(in srgb, var(--zcs-accent) 50%, transparent); padding: .08em 0 .08em .78em; color: var(--fill-secondary, #666); }
+    .zcs-markdown blockquote { margin: .62em 0; border-inline-start: 3px solid color-mix(in srgb, var(--zcs-accent) 50%, transparent); padding: .08em 0 .08em .78em; color: var(--zcs-secondary); }
     .zcs-markdown blockquote > :last-child { margin-bottom: 0; }
     .zcs-markdown-code-block { box-sizing: border-box; max-width: 100%; overflow-x: auto; margin: .65em 0; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-item); padding: 9px 10px; background: color-mix(in srgb, currentColor 7%, transparent); white-space: pre; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .9em; line-height: 1.48; tab-size: 2; }
     .zcs-markdown-inline-code { border-radius: 5px; padding: .1em .34em; background: color-mix(in srgb, currentColor 8%, transparent); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: .91em; }
@@ -3589,49 +3602,55 @@ function injectStyles(doc) {
     .zcs-markdown-math-display { box-sizing: border-box; overflow-x: auto; overflow-y: hidden; margin: .65em 0; padding: 2px 0; text-align: center; }
     .zcs-markdown-math-display .katex-display { margin: .25em 0; }
     .zcs-markdown-math-fallback { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-    .zcs-markdown-link, .zcs-markdown-image-link { color: var(--zcs-accent-strong); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+    .zcs-markdown-link, .zcs-markdown-image-link { color: var(--zcs-link); text-decoration-thickness: 1px; text-underline-offset: 2px; }
     .zcs-markdown-table-wrap { box-sizing: border-box; max-width: 100%; overflow-x: auto; margin: .65em 0; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-item); }
     .zcs-markdown table { width: 100%; border-collapse: collapse; font-size: .92em; }
     .zcs-markdown th, .zcs-markdown td { border-inline-end: 1px solid var(--zcs-border); border-bottom: 1px solid var(--zcs-border); padding: 6px 7px; vertical-align: top; }
     .zcs-markdown th:last-child, .zcs-markdown td:last-child { border-inline-end: 0; }
     .zcs-markdown tbody tr:last-child td { border-bottom: 0; }
-    .zcs-markdown th { background: color-mix(in srgb, currentColor 6%, transparent); font-weight: 680; }
+    .zcs-markdown th { background: color-mix(in srgb, currentColor 6%, transparent); font-weight: 600; }
     .zcs-markdown hr { height: 1px; margin: .8em 0; border: 0; background: var(--zcs-border); }
-    .zcs-message-reasoning { padding: 8px 10px; border: 0; border-radius: var(--zcs-radius-item); background: color-mix(in srgb, var(--zcs-accent) 6%, transparent); color: var(--fill-secondary, #666); box-shadow: none; }
-    .zcs-reasoning-head { display: flex; align-items: center; gap: 6px; border-radius: calc(var(--zcs-radius-item) - 3px); color: var(--zcs-accent-strong); cursor: pointer; list-style: none; font-size: 10px; font-weight: 650; user-select: none; }
+    .zcs-message-reasoning { padding: 8px 10px; border: 0; border-radius: var(--zcs-radius-item); background: var(--zcs-soft); color: var(--zcs-secondary); box-shadow: none; }
+    .zcs-reasoning-head { display: flex; align-items: center; gap: 6px; border-radius: calc(var(--zcs-radius-item) - 3px); color: var(--zcs-secondary); cursor: pointer; list-style: none; font-size: 11px; font-weight: 400; user-select: none; }
     .zcs-reasoning-head::marker, .zcs-reasoning-head::-webkit-details-marker { content: ""; display: none; }
     .zcs-reasoning-head:focus-visible { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--zcs-accent) 20%, transparent); }
-    .zcs-reasoning-chevron { width: 7px; height: 7px; margin-left: auto; border-right: 1.4px solid currentColor; border-bottom: 1.4px solid currentColor; opacity: .72; transform: rotate(-45deg); transition: transform .16s ease; }
+    .zcs-reasoning-chevron { width: 7px; height: 7px; margin-left: 2px; border-right: 1.4px solid currentColor; border-bottom: 1.4px solid currentColor; opacity: .72; transform: rotate(-45deg); transition: transform .16s ease; }
     .zcs-message-reasoning[open] .zcs-reasoning-chevron { transform: rotate(45deg); }
-    .zcs-reasoning-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--zcs-accent); }
-    .zcs-reasoning-dot[data-active="true"] { animation: zcs-reasoning-pulse 1.35s ease-in-out infinite; }
-    .zcs-reasoning-body { margin-top: 5px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; line-height: 1.5; }
-    @keyframes zcs-reasoning-pulse { 0%, 100% { opacity: .38; transform: scale(.82); } 50% { opacity: 1; transform: scale(1); } }
+    .zcs-reasoning-body { margin-top: 8px; padding-inline-start: 10px; border-inline-start: 1px solid var(--zcs-border); white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; line-height: 1.6; }
     .zcs-typing { opacity: .58; }
-    .zcs-suggestions { display: flex; column-gap: 9px; row-gap: 8px; flex-wrap: wrap; margin-bottom: 0; }
+    .zcs-suggestions { display: flex; column-gap: 8px; row-gap: 8px; flex-wrap: wrap; margin-bottom: 0; }
     .zcs-selection-slot:empty { display: none; }
-    .zcs-chip { border: 0; border-radius: var(--zcs-radius-pill); padding: 5px 9px; background: color-mix(in srgb, currentColor 6%, transparent); font-size: 10px; }
+    .zcs-chip { border: 0; border-radius: var(--zcs-radius-control); padding: 6px 9px; background: var(--zcs-soft); font-size: 11px; text-align: start; }
     .zcs-chip:hover { border: 0; background: color-mix(in srgb, var(--zcs-accent) 11%, transparent); }
-    .zcs-selections { display: flex; flex-direction: column; gap: 5px; padding: 7px; border: 1px solid color-mix(in srgb, var(--zcs-accent) 25%, transparent); border-radius: var(--zcs-radius-panel); background: color-mix(in srgb, var(--zcs-accent) 7%, transparent); }
-    .zcs-selections-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--zcs-accent-strong); font-size: 10px; font-weight: 650; }
-    .zcs-selection { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 6px; padding: 6px 7px; border-radius: var(--zcs-radius-item); background: color-mix(in srgb, currentColor 5%, transparent); }
-    .zcs-selection-text { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; line-height: 1.42; }
-    .zcs-selection-remove { appearance: none; width: 20px; height: 20px; border: 0; border-radius: var(--zcs-radius-control); background: transparent; color: var(--fill-secondary, #777); cursor: pointer; font-size: 13px; line-height: 20px; }
+    .zcs-selections { display: flex; flex-direction: column; gap: 5px; padding: 8px; border: 1px solid color-mix(in srgb, var(--zcs-accent) 25%, transparent); border-radius: var(--zcs-radius-panel); background: transparent; border-color: var(--zcs-border); }
+    .zcs-selections-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--zcs-secondary); font-size: 11px; font-weight: 600; }
+    .zcs-selection { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 6px; padding: 6px 7px; border-radius: var(--zcs-radius-item); background: var(--zcs-soft); }
+    .zcs-selection-text { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 11px; line-height: 1.55; }
+    .zcs-selection-remove { appearance: none; width: 20px; height: 20px; border: 0; border-radius: var(--zcs-radius-control); background: transparent; color: var(--zcs-secondary); cursor: pointer; font-size: 13px; line-height: 20px; }
     .zcs-selection-remove:hover { background: color-mix(in srgb, currentColor 9%, transparent); }
-    .zcs-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(48px, auto) 27px; grid-template-areas: "input input" "controls send"; column-gap: 8px; row-gap: 6px; align-items: stretch; padding: 8px; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-card); background: color-mix(in srgb, currentColor 2.5%, transparent); box-shadow: 0 4px 18px color-mix(in srgb, #000 5%, transparent); transition: border-color .16s ease, box-shadow .16s ease, background .16s ease; }
-    .zcs-composer:focus-within { border-color: color-mix(in srgb, var(--zcs-accent) 72%, transparent); background: color-mix(in srgb, var(--zcs-accent) 3%, transparent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--zcs-accent) 16%, transparent), 0 5px 20px color-mix(in srgb, #000 6%, transparent); }
-    .zcs-input { grid-area: input; box-sizing: border-box; width: 100%; min-height: 48px; max-height: 150px; resize: vertical; border: 0; outline: none; background: transparent; color: inherit; caret-color: var(--zcs-accent); padding: 4px 3px; font-family: var(--zcs-chat-font-family); font-size: var(--zcs-chat-font-size); line-height: 1.45; }
+    .zcs-composer { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: minmax(56px, auto) auto; grid-template-areas: "input input" "controls send"; column-gap: 10px; row-gap: 8px; align-items: stretch; padding: 10px; border: 1px solid var(--zcs-border); border-radius: var(--zcs-radius-card); background: var(--zcs-surface); box-shadow: none; transition: border-color .16s ease, box-shadow .16s ease, background .16s ease; }
+    .zcs-composer:focus-within { border-color: color-mix(in srgb, var(--zcs-accent) 55%, transparent); background: var(--zcs-surface); box-shadow: 0 0 0 2px color-mix(in srgb, var(--zcs-accent) 12%, transparent); }
+    .zcs-input { grid-area: input; box-sizing: border-box; width: 100%; min-height: 56px; max-height: 150px; resize: vertical; border: 0; outline: none; background: transparent; color: inherit; caret-color: var(--zcs-accent); padding: 4px 3px; font-family: var(--zcs-chat-font-family); font-size: var(--zcs-chat-font-size); line-height: 1.6; }
     .zcs-input:focus, .zcs-input:focus-visible { border: 0 !important; outline: 0 !important; box-shadow: none !important; background: transparent !important; }
-    .zcs-input::placeholder { color: var(--fill-secondary, #888); opacity: .78; }
-    .zcs-send { grid-area: send; display: grid; place-items: center; width: 34px; min-width: 34px; height: 27px; margin: 0; border: 1px solid var(--zcs-accent); border-radius: var(--zcs-radius-control); padding: 0 0 1px; align-self: stretch; outline: none; background: var(--zcs-accent); color: white; font-weight: 680; font-size: 16px; line-height: 1; appearance: none; -moz-appearance: none; -webkit-tap-highlight-color: transparent; backface-visibility: hidden; contain: paint; transition: none; }
+    .zcs-input::placeholder { color: var(--zcs-secondary); opacity: .78; }
+    .zcs-send { grid-area: send; display: grid; place-items: center; width: 28px; min-width: 28px; height: 28px; margin: 0; border: 1px solid var(--zcs-accent); border-radius: 50%; padding: 0 0 1px; align-self: end; outline: none; background: var(--zcs-accent); color: white; font-weight: 600; font-size: 16px; line-height: 1; appearance: none; -moz-appearance: none; -webkit-tap-highlight-color: transparent; backface-visibility: hidden; contain: paint; transition: none; }
     .zcs-send::-moz-focus-inner { border: 0; padding: 0; }
     .zcs-send:hover, .zcs-send:active, .zcs-send:focus { border-color: var(--zcs-accent); background: var(--zcs-accent); color: white; opacity: 1; transform: none; }
     .zcs-send:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--zcs-accent) 24%, transparent); transform: none; }
     .zcs-send:disabled, .zcs-icon-button:disabled, .zcs-history-action:disabled, .zcs-history-menu-item:disabled { opacity: .48; cursor: default; transform: none; }
-    .zcs-footer { display: flex; justify-content: flex-end; align-items: center; color: var(--fill-secondary, #777); font-size: 9px; line-height: 1.4; }
+    .zcs-footer { display: flex; justify-content: flex-end; align-items: center; color: var(--zcs-secondary); font-size: 10px; line-height: 1.4; }
     .zcs-quota { flex: 0 0 auto; align-self: stretch; display: flex; align-items: stretch; min-width: 0; height: 27px; }
-    .zcs-quota-item { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: 27px; min-height: 27px; margin: 0; border-radius: var(--zcs-radius-control); padding: 0 6px; color: var(--fill-secondary, #666); background: var(--zcs-soft); font-size: 9px; line-height: 25px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .zcs-link-button { appearance: none; border: 0; margin-left: auto; padding: 2px 0; color: var(--zcs-accent-strong); background: transparent; cursor: pointer; font: inherit; font-size: 9px; font-weight: 620; }
+    .zcs-quota-item { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: 27px; min-height: 27px; margin: 0; border-radius: var(--zcs-radius-control); padding: 0 4px; color: var(--zcs-secondary); background: transparent; font-size: 10px; line-height: 25px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .zcs-link-button { appearance: none; border: 0; margin-left: auto; padding: 2px 0; color: var(--zcs-link); background: transparent; cursor: pointer; font: inherit; font-size: 9px; font-weight: 500; }
+    @media (prefers-color-scheme: dark) {
+      .zcs-root { --zcs-secondary: var(--fill-secondary, #b5b5bd); --zcs-surface: var(--material-background, #242426); --zcs-link: color-mix(in srgb, var(--zcs-accent) 55%, white); color: var(--fill-primary, #ededf0); }
+      .zcs-error { color: #ff9a9f; }
+    }
+    .zcs-root :is(button, select, input, summary, a):focus-visible { outline: 2px solid var(--zcs-link); outline-offset: 2px; }
+    .zcs-root :is(button, select):disabled { cursor: default; }
+    @media (prefers-reduced-motion: reduce) {
+      .zcs-root *, .zcs-root *::before, .zcs-root *::after { animation: none !important; transition: none !important; }
+    }
   `;
   doc.documentElement.appendChild(style);
   injectKatexStyles(doc);
@@ -3662,7 +3681,7 @@ function contextBadge(context) {
 function renderPanelShell({ body, doc }) {
   cleanupPanel(body);
   const panelDocument = doc || body.ownerDocument;
-  enforceIconOnlyPaneChrome(panelDocument);
+  configurePaneChrome(panelDocument);
   injectStyles(panelDocument);
   const panelBody = getMountedPanelBody(body, panelDocument);
   const host = getPanelHost(panelBody);
@@ -3911,7 +3930,7 @@ function appendSelectOption(doc, select, value, label) {
   select.append(option);
 }
 
-function updateModelControls(doc, session, modelSelect, effortSelect, speedSelect) {
+function updateModelControls(doc, session, modelSelect, effortSelect, speedButton, modelLabel, effortLabelElement) {
   const modelKey = `${uiLanguage()}|${session.models
     .map((model) => `${modelIdentifier(model)}:${model.displayName || ""}`)
     .join("|")}`;
@@ -3948,22 +3967,22 @@ function updateModelControls(doc, session, modelSelect, effortSelect, speedSelec
   }
   effortSelect.value = session.selectedEffort || "";
 
-  const serviceTiers = supportedServiceTiers(model);
-  const serviceTierKey = `${uiLanguage()}|${serviceTiers
-    .map((tier) => `${tier.id}:${serviceTierLabel(tier)}`)
-    .join("|")}`;
-  if (speedSelect.dataset.optionsKey !== serviceTierKey) {
-    speedSelect.replaceChildren();
-    for (const tier of serviceTiers) {
-      appendSelectOption(doc, speedSelect, tier.id, serviceTierLabel(tier));
-    }
-    speedSelect.dataset.optionsKey = serviceTierKey;
-  }
-  speedSelect.value = session.selectedServiceTier || "default";
-  const selectedTier = serviceTiers.find((tier) => tier.id === speedSelect.value);
-  speedSelect.title = selectedTier && selectedTier.description
-    ? `${uiText("speedTitle")} · ${selectedTier.description}`
-    : uiText("speedTitle");
+  modelLabel.textContent = model
+    ? model.displayName || modelIdentifier(model)
+    : uiText("defaultModel");
+  effortLabelElement.textContent = session.selectedEffort
+    ? effortLabel(session.selectedEffort)
+    : uiText("defaultValue");
+  const fastTier = supportedServiceTiers(model).find((tier) =>
+    tier.id === "priority" || tier.id === "fast" || String(tier.name || "").toLowerCase() === "fast"
+  );
+  const active = Boolean(fastTier && session.selectedServiceTier === fastTier.id);
+  speedButton.dataset.fastTier = fastTier ? fastTier.id : "";
+  speedButton.dataset.active = String(active);
+  speedButton.setAttribute("aria-pressed", String(active));
+  speedButton.disabled = speedButton.disabled || !fastTier;
+  speedButton.title = `${uiText("speedAria")} · ${uiText(active ? "speedFast" : "speedStandard")} — ${uiText("speedTitle")}`;
+  speedButton.setAttribute("aria-label", speedButton.title);
 }
 
 function renderPendingSelections(doc, session, disabled = false) {
@@ -4000,7 +4019,7 @@ async function renderPanel({ body, item, context: suppliedContext, doc: hookDocu
   cleanupPanel(body);
 
   const doc = hookDocument || body.ownerDocument;
-  enforceIconOnlyPaneChrome(doc);
+  configurePaneChrome(doc);
   injectStyles(doc);
 
   let context;
@@ -4062,11 +4081,21 @@ async function renderPanel({ body, item, context: suppliedContext, doc: hookDocu
     const effortSelect = htmlElement(doc, "select", "zcs-select zcs-effort-select");
     effortSelect.title = uiText("effortTitle");
     effortSelect.setAttribute("aria-label", uiText("effortAria"));
-    const speedSelect = htmlElement(doc, "select", "zcs-select zcs-speed-select");
-    speedSelect.title = uiText("speedTitle");
-    speedSelect.setAttribute("aria-label", uiText("speedAria"));
+    const speedButton = htmlElement(doc, "button", "zcs-speed-button");
+    speedButton.type = "button";
+    speedButton.title = uiText("speedTitle");
+    speedButton.setAttribute("aria-label", uiText("speedAria"));
     const quota = htmlElement(doc, "div", "zcs-quota");
-    modelControls.append(modelSelect, effortSelect, speedSelect, quota);
+    // Measure only the selected label; native selects otherwise reserve space for the longest option.
+    const modelField = htmlElement(doc, "div", "zcs-control-field zcs-model-field");
+    const effortField = htmlElement(doc, "div", "zcs-control-field");
+    const modelLabel = htmlElement(doc, "span", "zcs-control-label");
+    const effortLabelElement = htmlElement(doc, "span", "zcs-control-label");
+    modelLabel.setAttribute("aria-hidden", "true");
+    effortLabelElement.setAttribute("aria-hidden", "true");
+    modelField.append(modelLabel, modelSelect);
+    effortField.append(effortLabelElement, effortSelect);
+    modelControls.append(modelField, effortField, speedButton, quota);
 
     const errorBox = htmlElement(doc, "div", "zcs-error");
     const historySlot = htmlElement(doc, "div", "zcs-history-slot");
@@ -4166,10 +4195,11 @@ async function renderPanel({ body, item, context: suppliedContext, doc: hookDocu
       "change",
       () => selectReasoningEffort(session, effortSelect.value),
     );
-    speedSelect.addEventListener(
-      "change",
-      () => selectServiceTier(session, speedSelect.value),
-    );
+    speedButton.addEventListener("click", () => {
+      if (speedButton.disabled || !speedButton.dataset.fastTier) return;
+      selectServiceTier(session, speedButton.dataset.active === "true"
+        ? "default" : speedButton.dataset.fastTier);
+    });
 
     const update = () => {
       applyAppearanceSettings(root);
@@ -4182,7 +4212,7 @@ async function renderPanel({ body, item, context: suppliedContext, doc: hookDocu
       modelSelect.setAttribute("aria-label", uiText("modelAria"));
       effortSelect.title = uiText("effortTitle");
       effortSelect.setAttribute("aria-label", uiText("effortAria"));
-      speedSelect.setAttribute("aria-label", uiText("speedAria"));
+      speedButton.setAttribute("aria-label", uiText("speedAria"));
       newButton.title = uiText(
         context.kind === "collection" ? "newCollectionChatTitle" : "newChatTitle",
       );
@@ -4211,10 +4241,10 @@ async function renderPanel({ body, item, context: suppliedContext, doc: hookDocu
       const selectedModel = session.models.find(
         (entry) => modelIdentifier(entry) === session.selectedModel,
       );
-      speedSelect.disabled = session.busy
+      speedButton.disabled = session.busy
         || loading
         || supportedServiceTiers(selectedModel).length <= 1;
-      updateModelControls(doc, session, modelSelect, effortSelect, speedSelect);
+      updateModelControls(doc, session, modelSelect, effortSelect, speedButton, modelLabel, effortLabelElement);
       updateRateLimitDisplay(doc, quota, session.rateLimitState);
       const activeCount = session.conversations.filter(
         (conversation) => !conversation.archived,
@@ -4254,14 +4284,10 @@ async function renderPanel({ body, item, context: suppliedContext, doc: hookDocu
       } else {
         for (const message of session.messages) {
           if (message.role === "reasoning") {
-            const activeThinking = session.busy && message === session.activeThinking;
             const reasoning = htmlElement(doc, "details", "zcs-message zcs-message-reasoning");
-            reasoning.open = activeThinking || Boolean(message.expanded);
+            reasoning.open = Boolean(message.expanded);
             const reasoningHead = htmlElement(doc, "summary", "zcs-reasoning-head");
-            const reasoningDot = htmlElement(doc, "span", "zcs-reasoning-dot");
-            reasoningDot.dataset.active = String(activeThinking);
             reasoningHead.append(
-              reasoningDot,
               htmlElement(doc, "span", "", uiText("thinkingTrace")),
               htmlElement(doc, "span", "zcs-reasoning-chevron"),
             );
@@ -4273,7 +4299,7 @@ async function renderPanel({ body, item, context: suppliedContext, doc: hookDocu
             };
             updateReasoningTitle();
             reasoning.addEventListener("toggle", () => {
-              if (!activeThinking) message.expanded = Boolean(reasoning.open);
+              message.expanded = Boolean(reasoning.open);
               updateReasoningTitle();
             });
             reasoning.append(

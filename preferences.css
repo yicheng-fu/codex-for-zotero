@@ -1,12 +1,16 @@
 #zotero-codex-preferences .zcs-preferences-description {
-  margin-bottom: 10px;
+  margin-block: 4px 16px;
   color: var(--fill-secondary);
-  line-height: 1.5;
+  line-height: 1.6;
 }
 
 #zotero-codex-preferences .zcs-preference-row {
-  min-height: 36px;
-  padding-block: 3px;
+  min-height: 40px;
+  padding-block: 6px;
+}
+
+#zotero-codex-preferences .zcs-preference-row + .zcs-preference-row {
+  border-top: 1px solid color-mix(in srgb, currentColor 8%, transparent);
 }
 
 #zotero-codex-preferences menulist {

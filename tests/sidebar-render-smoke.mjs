@@ -119,7 +119,7 @@ vm.runInContext(`${source}
   globalThis.renderReaderSelectionActionForTest = renderReaderSelectionAction;
   globalThis.queuePDFSelectionForTest = queuePDFSelection;
   globalThis.createCollectionShellContextForTest = createCollectionShellContext;
-  globalThis.enforceIconOnlyPaneChromeForTest = enforceIconOnlyPaneChrome;
+  globalThis.configurePaneChromeForTest = configurePaneChrome;
   globalThis.renderMarkdownForTest = renderMarkdown;
   globalThis.setKatexRendererForTest = (renderer) => {
     katexTestRenderer = renderer;
@@ -273,24 +273,38 @@ assert.equal(find(body, (element) => element.className === "zcs-eyebrow"), null)
 assert.ok(find(body, (element) => element.tagName === "select" && element.value === "gpt-test"));
 assert.equal(find(body, (element) => element.textContent === "GPT-5.3-Codex-Spark"), null);
 assert.ok(find(body, (element) => element.tagName === "select" && element.value === "low"));
-assert.ok(find(body, (element) =>
-  element.tagName === "select"
-  && element.className.includes("zcs-speed-select")
-  && element.value === "default"
-));
-assert.ok(find(body, (element) => element.tagName === "option" && element.textContent === "标准"));
-assert.ok(find(body, (element) => element.tagName === "option" && element.textContent === "快速"));
+const speedButton = find(body, (element) => element.className === "zcs-speed-button");
+assert.equal(speedButton["aria-pressed"], "false");
+assert.equal(speedButton.disabled, false);
+speedButton.listeners.click();
+assert.equal(speedButton["aria-pressed"], "true");
+assert.equal(context.getPanelSessionForTest().selectedServiceTier, "priority");
+speedButton.listeners.click();
+assert.equal(speedButton["aria-pressed"], "false");
+assert.equal(context.getPanelSessionForTest().selectedServiceTier, "default");
+const toolbarSession = context.getPanelSessionForTest();
+const toolbarModel = toolbarSession.models.find((model) => model.id === toolbarSession.selectedModel);
+const savedTiers = toolbarModel.serviceTiers;
+toolbarModel.serviceTiers = [];
+for (const listener of toolbarSession.listeners) listener();
+assert.equal(speedButton.disabled, true);
+speedButton.listeners.click();
+assert.equal(toolbarSession.selectedServiceTier, "default");
+toolbarModel.serviceTiers = savedTiers;
+for (const listener of toolbarSession.listeners) listener();
+assert.equal(speedButton.disabled, false);
+
 const composer = find(body, (element) => element.className === "zcs-composer");
 const modelControls = find(composer, (element) => element.className === "zcs-model-controls");
 assert.ok(modelControls);
 assert.ok(find(modelControls, (element) =>
   element.className === "zcs-quota-item"
-  && element.textContent === "周 50%"
+  && element.textContent === "50%"
 ));
 assert.equal(find(composer, (element) => element.textContent === "模型"), null);
 assert.equal(find(composer, (element) => element.textContent === "推理"), null);
 assert.equal(find(body, (element) => element.className === "zcs-quota-item" && element.textContent === "5h 75%"), null);
-assert.ok(find(body, (element) => element.className === "zcs-quota-item" && element.textContent === "周 50%"));
+assert.ok(find(body, (element) => element.className === "zcs-quota-item" && element.textContent === "50%"));
 assert.equal(find(body, (element) => element.className === "zcs-quota-label"), null);
 assert.equal(find(body, (element) => element.className === "zcs-privacy"), null);
 assert.ok(find(body, (element) => element.textContent === "调研相关论文"));
@@ -300,7 +314,7 @@ assert.equal(login.hidden, true);
 const renderedRoot = find(body, (element) => element.className === "zcs-root");
 assert.equal(renderedRoot.style["--zcs-chat-font-size"], "12px");
 assert.match(documentElement.children[0].textContent, /\.zcs-message \{[^}]*border: 0;/);
-assert.match(documentElement.children[0].textContent, /\.zcs-message-assistant, \.zcs-message-reasoning \{[^}]*align-self: flex-start;[^}]*box-sizing: border-box;[^}]*width: 91%;[^}]*max-width: 91%;/);
+assert.match(documentElement.children[0].textContent, /\.zcs-message-assistant, \.zcs-message-reasoning \{[^}]*align-self: flex-start;[^}]*box-sizing: border-box;[^}]*width: 100%;[^}]*max-width: 100%;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-markdown-code-block \{[^}]*overflow-x: auto;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-markdown-table-wrap \{[^}]*overflow-x: auto;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-markdown-math-display \{[^}]*overflow-x: auto;/);
@@ -311,7 +325,7 @@ assert.ok(documentElement.children.find((element) =>
 assert.match(documentElement.children[0].textContent, /\.zcs-chip \{[^}]*border: 0;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-composer:focus-within \{[^}]*var\(--zcs-accent\)/);
 assert.match(documentElement.children[0].textContent, /\.zcs-input:focus, \.zcs-input:focus-visible \{[^}]*outline: 0 !important;[^}]*box-shadow: none !important;/);
-assert.match(documentElement.children[0].textContent, /\.zcs-composer \{[^}]*grid-template-rows: minmax\(48px, auto\) 27px;/);
+assert.match(documentElement.children[0].textContent, /\.zcs-composer \{[^}]*grid-template-rows: minmax\(56px, auto\) auto;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-history-menu \{[^}]*gap: 6px;[^}]*padding: 6px;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-history-menu-item \{[^}]*border: 0;[^}]*border-radius: calc\(var\(--zcs-radius-panel\) - 5px\);/);
 assert.match(documentElement.children[0].textContent, /\.zcs-rename \{[^}]*column-gap: 10px;/);
@@ -320,7 +334,6 @@ assert.match(documentElement.children[0].textContent, /\.zcs-select \{[^}]*borde
 assert.match(documentElement.children[0].textContent, /\.zcs-select:hover, \.zcs-select:focus \{[^}]*var\(--zcs-accent\) 11%/);
 assert.match(documentElement.children[0].textContent, /\.zcs-suggestions \{[^}]*margin-bottom: 0;/);
 assert.match(documentElement.children[0].textContent, /\.zcs-selection-slot:empty \{ display: none; \}/);
-assert.match(documentElement.children[0].textContent, /\.zcs-model-select \{[^}]*width: 108px;[^}]*max-width: min\(38%, 108px\);/);
 assert.equal(source.includes("积小成巨"), false);
 assert.equal(source.includes("Many a little makes a mickle"), false);
 assert.equal(source.includes('session.busy ? "■" : "↑"'), false);
@@ -344,15 +357,17 @@ assert.ok(find(body, (element) =>
   element.className === "zcs-reasoning-body"
   && element.textContent === "正在核对方法与实验结果"
 ));
-assert.ok(find(body, (element) =>
-  element.className === "zcs-reasoning-dot"
-  && element.dataset.active === "true"
-));
+assert.equal(find(body, (element) => element.className === "zcs-reasoning-dot"), null);
+
 const activeReasoningDetails = find(body, (element) =>
   element.tagName === "details"
   && element.className.includes("zcs-message-reasoning")
 );
-assert.equal(activeReasoningDetails.open, true);
+assert.equal(activeReasoningDetails.open, false);
+activeReasoningDetails.open = true;
+activeReasoningDetails.listeners.toggle();
+for (const listener of panelSession.listeners) listener();
+assert.equal(find(body, (element) => element.tagName === "details" && element.className.includes("zcs-message-reasoning")).open, true);
 assert.equal(find(body, (element) => element.className.includes("zcs-message-assistant")), null);
 
 const sidenavButton = new FakeElement("div");
@@ -367,12 +382,13 @@ const pane = {
   dataset: { pane: "cortex@yicheng-fu.github.io-zotero-codex-chat" },
   querySelector: () => section,
 };
-context.enforceIconOnlyPaneChromeForTest({
+context.configurePaneChromeForTest({
   querySelectorAll: (selector) => selector === "item-pane-sidenav" ? [sidenav] : [pane],
 });
 assert.equal(sidenavButton.children.length, 0);
 assert.equal(sidenavButton.dataset.l10nId, undefined);
-assert.notEqual(section.label, "Cortex");
+assert.equal(section.label, "Cortex");
+assert.equal(sidenavButton["aria-label"], "Cortex");
 
 const popupActions = [];
 context.renderReaderSelectionActionForTest({
@@ -382,7 +398,7 @@ context.renderReaderSelectionActionForTest({
   append: (element) => popupActions.push(element),
 });
 assert.equal(popupActions.length, 1);
-assert.equal(popupActions[0].textContent, "＋ Codex");
+assert.equal(popupActions[0].textContent, "+ Ask Cortex");
 assert.match(icon, /M14\.5 10\.4a2\.8 2\.8 0 1 0 0 4\.4/);
 assert.doesNotMatch(icon, /M9\.2 9\.5h5\.6/);
 
@@ -469,9 +485,7 @@ panelSession.messages = [];
 context.setUILanguageForTest("en-US");
 assert.ok(find(body, (element) => element.tagName === "button" && element.textContent === "Summarize this paper"));
 assert.ok(find(body, (element) => element.tagName === "button" && element.textContent === "Research related papers"));
-assert.ok(find(body, (element) => element.tagName === "option" && element.textContent === "Standard"));
-assert.ok(find(body, (element) => element.tagName === "option" && element.textContent === "Fast"));
-assert.ok(find(body, (element) => element.className === "zcs-quota-item" && element.textContent === "Week 50%"));
+assert.ok(find(body, (element) => element.className === "zcs-quota-item" && element.textContent === "50%"));
 assert.equal(find(body, (element) => element.className === "zcs-empty-title"), null);
 
 context.setUILanguageForTest("zh-CN");
