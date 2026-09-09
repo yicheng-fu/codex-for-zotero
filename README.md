@@ -1,5 +1,7 @@
 # Cortex: A Codex-Powered Sidebar Agent for Zotero
 
+**简体中文** | [English](README.en.md)
+
 Cortex 是一个将 Codex 对话集成到 Zotero 右侧栏的开源插件。它可以围绕当前论文进行问答，也可以分析当前分类中的多篇文献，帮助总结主题、比较方法并梳理研究脉络。
 
 
